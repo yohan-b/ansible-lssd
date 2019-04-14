@@ -35,9 +35,10 @@ nosetests.xml
 .project
 .pydevproject
 
-ansible.cfg
 *.pem
 *.torrent
 murder_dist.tar.gz
 stage
 murder/
+CMDB_share_credentials
+vcsim_vars.yml

@@ -1,7 +1,7 @@
 # Sometimes peers can go on forever (usually because of an error).
 # This command will forcibly kill all "murder_client.py peer" commands that are running.
 - name: stop all peering
-  shell: pkill -f "murder_client.py peer"
+  shell: pkill -f "aria2c"
   register: result
   failed_when: result.rc not in [0, 1]
   changed_when: result.rc not in [0, 1]

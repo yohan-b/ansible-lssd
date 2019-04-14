@@ -3,6 +3,10 @@
 # The ip address returned by the 'host' bash command will be announced to the tracker. 
 # The server will not stop seeding until the stop_seeding task is called. 
 # You must specify a valid 'tag' argument (which identifies the .torrent in /tmp to use)
+#- name: start seeding
+#  shell: SCREENRC=/dev/null SYSSCREENRC=/dev/null screen -dmS 'seeder-{{ tag }}' python {{ remote_murder_path }}/murder_client.py seeder '/tmp/{{ base_filename }}.torrent' '{{ seeder_files_path }}/{{ base_filename }}' {{ ansible_default_ipv4['address'] }}
+#  tags: start_seeding
+
 - name: start seeding
-  shell: SCREENRC=/dev/null SYSSCREENRC=/dev/null screen -dmS 'seeder-{{ tag }}' python {{ remote_murder_path }}/murder_client.py seeder '{{ filename }}.torrent' '{{ filename }}' {{ ansible_default_ipv4['address'] }}
+  shell: SCREENRC=/dev/null SYSSCREENRC=/dev/null screen -dmS 'seeder-{{ tag }}' aria2c --console-log-level=notice --peer-id-prefix={{ inventory_hostname[-8:] }} --disable-ipv6 --enable-dht=false --listen-port=6881 --allow-overwrite=true --bt-max-peers=2 --bt-seed-unverified=true --seed-ratio=0.0 -d  '{{ seeder_files_path }}' '/tmp/{{ base_filename }}.torrent'
   tags: start_seeding

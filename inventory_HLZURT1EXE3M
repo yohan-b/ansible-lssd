@@ -1,0 +1,18 @@
+# ansible host
+[ansible_host]
+localhost ansible_connection=local
+
+# tracker node
+[tracker]
+hlzurt1exe3m node_type=tracker
+
+# seeder node
+[seeder]
+hlzurt1exe3m node_type=seeder
+
+# peer nodes
+[peer]
+HLZURT1EXE04
+HLZURT1EXE05
+HLZURT1EXE06
+HLZURT1EXE08

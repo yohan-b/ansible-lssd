@@ -1,9 +1,0 @@
-
-
-- name: rm_tgz 
-  gather_facts: no
-  hosts: peer
-  sudo: yes
-  roles:
-    - murder/rm_tgz
-

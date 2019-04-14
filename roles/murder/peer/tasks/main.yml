@@ -21,6 +21,11 @@
   when: unsafe_please_delete
   tags: peer
 
+- name: supprime
+  shell: /opt/{{ peer_ADABO }}/Logiciel/BDIG/Specifique_CAT/Scripts/clone_torrent_etape_supprime.sh
+  when: not only_deploy_archive
+  tags: peer
+
 - name: check destination_path/*
   shell: |
     (
@@ -33,14 +38,58 @@
   tags: peer
 
 - name: upload torrent file
-  copy: src={{ torrent_path }}/{{ filename|basename }}.torrent dest={{ filename }}.torrent
+  copy: src=/tmp/{{ filename|basename }}.torrent dest={{ filename }}.torrent
   tags: peer
 
-- name:  run murder_client.py
-  shell: python {{ remote_murder_path }}/murder_client.py peer '{{ filename }}.torrent' '{{filename}}' {{ ansible_default_ipv4['address'] }}
+- name: copy aria2 RHEL6
+  copy: src={{ src_path }}/packages/aria2-1.16.4-1.el6.rf.x86_64.rpm dest="{{ ansible_cache_path }}/"
+  tags: peer
+  when: ansible_distribution_major_version == "6"
+
+- name: copy nettle RHEL6
+  copy: src={{ src_path }}/packages/nettle-2.2-1.el6.rf.x86_64.rpm dest="{{ ansible_cache_path }}/"
+  tags: peer
+  when: ansible_distribution_major_version == "6"
+
+- name: copy aria2 RHEL7
+  copy: src={{ src_path }}/packages/aria2-1.18.10-2.el7.1.x86_64.rpm dest="{{ ansible_cache_path }}/"
+  tags: peer
+  when: ansible_distribution_major_version == "7"
+
+- name: install aria2 RHEL6
+  shell: yum -y localinstall "{{ ansible_cache_path }}"/aria2*.rpm "{{ ansible_cache_path }}"/nettle*.rpm --nogpgcheck
+  tags: peer
+  when: ansible_distribution_major_version == "6"
+
+- name: install aria2 RHEL7
+  shell: yum -y localinstall "{{ ansible_cache_path }}"/aria2*.rpm --nogpgcheck
+  tags: peer
+  when: ansible_distribution_major_version == "7"
+
+- name: clean existing files
+  shell: rm -rf {{ filename }} {{ filename }}.aria2
+  when: remove_existing
   tags: peer
 
-- name:  tar xf
+- name: run aria2
+  shell: aria2c --console-log-level=notice --peer-id-prefix={{ inventory_hostname[-8:] }} --disable-ipv6 --enable-dht=false --listen-port=6881 --allow-overwrite=true --bt-max-peers=4 --enable-peer-exchange=true --bt-seed-unverified=true --seed-time=1 -d '{{ destination_path }}' '{{ filename }}.torrent' &> /var/log/{{ peer_ADABO }}/BDIG/torrent.log
+#  shell: aria2c --console-log-level=debug --disable-ipv6 --enable-dht=false --listen-port=6881 --allow-overwrite=true --bt-max-peers=4 --enable-peer-exchange=true --bt-seed-unverified=true --seed-time=1 -d '{{ destination_path }}' '{{ filename }}.torrent' &> /var/log/{{ peer_ADABO }}/BDIG/torrent.log
+  tags: peer
+
+#- name:  run murder_client.py
+#  shell: python {{ remote_murder_path }}/murder_client.py peer '{{ filename }}.torrent' '{{filename}}' {{ ansible_default_ipv4['address'] }}
+#  tags: peer
+
+- name: tar xf
   shell: unpigz -c {{ filename }} | tar -x -C "{{ destination_path }}"
+  when: not only_deploy_archive
   tags: peer
 
+- name: clean downloaded files
+  shell: rm -rf {{ filename }} {{ filename }}.torrent
+  tags: peer
+
+- name: clone_torrent.sh
+  shell: /opt/{{ peer_ADABO }}/Logiciel/BDIG/Specifique_CAT/Scripts/clone_torrent.sh
+  when: not only_deploy_archive
+  tags: peer

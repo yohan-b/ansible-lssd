@@ -1,21 +1,47 @@
 
-- name: create tar.gz
-  shell: tar -c -C {{ seeder_files_path }}/ {{ tar_options }} .|pigz > {{ filename }}
+#- name: create tar.gz
+#  shell: tar -c -C {{ seeder_files_path }}/ {{ tar_options }} .|pigz > {{ filename }}
+#  when: node_type == "seeder"
+#  tags: create_tgz
+
+- name: remount cifs share
+  shell: systemctl restart SL{{ seeder_ADABO }}CIFSBDIG_S.service
   when: node_type == "seeder"
-  tags: create_tgz
+  tags: create_torrent
+  become: yes
 
 - name: set tracker ip
   set_fact: tracker_host={{ hostvars[groups['tracker'][0]]['ansible_default_ipv4']['address']  }}
   when: node_type == "seeder"
   tags: create_torrent
 
-- name: create torrent
-  shell: python {{ remote_murder_path }}/murder_make_torrent.py '{{ filename }}' {{ tracker_host }}:{{ tracker_port }} '{{ filename }}.torrent'
+- name: remove torrent
+  shell: rm '/tmp/{{ base_filename }}.torrent'
   when: node_type == "seeder"
   tags: create_torrent
 
-- name: fetch torrent
-  fetch: src={{ filename }}.torrent dest={{ torrent_path }}/ flat=yes fail_on_missing=yes
+- name: install mktorrent
+  yum: name=mktorrent state=latest
   when: node_type == "seeder"
-  tags: fetch_torrent
+  tags: create_torrent
 
+- name: create torrent
+  shell: mktorrent -l 21 -a "http://{{ tracker_host }}:{{ tracker_port }}/announce" -o '/tmp/{{ base_filename }}.torrent' '{{ source_filename }}'
+  when: node_type == "seeder"
+  tags: create_torrent
+
+- name: chmod torrent file
+  shell: chmod a+r '/tmp/{{ base_filename }}.torrent'
+  when: node_type == "seeder"
+  tags: create_torrent
+
+#- name: create torrent
+#  shell: python {{ remote_murder_path }}/murder_make_torrent.py '{{ source_filename }}' {{ tracker_host }}:{{ tracker_port }} '/tmp/{{ base_filename }}.torrent'
+#  when: node_type == "seeder"
+#  tags: create_torrent
+
+#- name: fetch torrent
+#- name: fetch torrent
+#  fetch: src={{ base_filename }}.torrent dest={{ ansible_cache_path }}/ flat=yes fail_on_missing=yes
+#  when: node_type == "seeder"
+#  tags: fetch_torrent

@@ -1,5 +1,19 @@
+- name: copy pigz 6
+  copy:
+    src: packages/pigz-2.3.4-1.el6.x86_64.rpm
+    dest: "{{ ansible_cache_path }}"
+  when: ansible_distribution_major_version == "6"
 
-- name: yum install pigz
-  yum: name=pigz state=latest
-  tags: pigz
+- name: copy pigz 7
+  copy:
+    src: packages/pigz-2.3.4-1.el7.x86_64.rpm
+    dest: "{{ ansible_cache_path }}"
+  when: ansible_distribution_major_version == "7"
+
+- name: yum localinstall pigz
+  shell: yum -y localinstall "{{ ansible_cache_path }}"/pigz*.rpm --nogpgcheck
+
+#- name: yum install pigz
+#  yum: name=pigz state=latest
+#  tags: pigz
 

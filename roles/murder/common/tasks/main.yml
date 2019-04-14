@@ -1,7 +1,15 @@
 
 - name: set tagname to filename
-  set_fact: filename={{ default_temp_path }}/{{ tag }}.tar.gz
+  set_fact: filename={{ destination_path }}/{{ tag }}.tar.gz
   tags: common
 
 
+- name: set tagname to source filename
+  set_fact: source_filename={{ seeder_files_path }}/{{ tag }}.tar.gz
+  tags: common
+
+
+- name: set tagname to base filename
+  set_fact: base_filename={{ tag }}.tar.gz
+  tags: common
 

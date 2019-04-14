@@ -1,5 +1,5 @@
-# Starts the Bittorrent tracker (essentially a mini-web-server) listening on port 8998.
+# Starts the Bittorrent tracker (essentially a mini-web-server)
 - name: start tracker
-  shell: SCREENRC=/dev/null SYSSCREENRC=/dev/null screen -dmS murder_tracker python {{ remote_murder_path }}/murder_tracker.py && sleep 0.2
+  shell: SCREENRC=/dev/null SYSSCREENRC=/dev/null screen -dmS bittorrent-tracker {{ remote_bittorrent_tracker_path }}/node_modules/bittorrent-tracker/bin/cmd.js --http -p 6969 && sleep 0.2
   tags: start_tracker
 

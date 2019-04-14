@@ -1,0 +1,9 @@
+vcenter_servers:
+  - SWTTSV1VCSSA.sres.stech
+  - SWTTYV1VCSYA.yres.ytech
+  - SWMUZV1VCSZA.zres.ztech
+  - SWMUZV1VCSZB.zres.ztech
+  - SWMUZV1VCSZC.zres.ztech
+  - SWMUZV1VCSZD.zres.ztech
+vcenter_user: user
+vcenter_pass: "password"

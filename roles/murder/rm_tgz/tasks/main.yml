@@ -1,7 +1,0 @@
-
-
-
-- name:  run {{ filename }}
-  file: path='{{ filename }}' state=absent
-  tags: rm_tgz
-

@@ -1,0 +1,31 @@
+# SCPs a compressed version of all files from ./dist (the python Bittorrent library and custom scripts) to all server.
+# The entire directory is sent, regardless of the role of each individual server.
+# The path on the server is specified by remote_bittorrent-tracker_path and will be cleared prior to transferring files over.
+
+- name: upload
+  copy: src={{ bittorrent_tracker_tgz_file }} dest={{ ansible_cache_path }}/bittorrent-tracker.tar.gz
+  tags: deploy_bittorrent-tracker
+  register: copy_status
+
+- name: clean up remote_bittorrent-tracker_path
+  shell: |
+    [ $(find {{ remote_bittorrent_tracker_path }}/* | wc -l ) -lt 1000 ] && 
+    rm -rf {{ remote_bittorrent_tracker_path }} || 
+    ( echo 'Cowardly refusing to remove files! Check the remote_bittorrent-tracker_path.' ; exit 1 )
+  when: copy_status.changed
+  register: rm_status
+  tags: deploy_bittorrent-tracker
+
+- name: dir stat
+  stat: path={{ remote_bittorrent_tracker_path }}/node_modules
+  register: st
+
+- name: tar -xzf
+  shell: mkdir -p {{ remote_bittorrent_tracker_path }} && tar -xzf {{ ansible_cache_path }}/bittorrent-tracker.tar.gz -C {{ remote_bittorrent_tracker_path }}
+  when: st.stat.isdir is undefined
+  tags: deploy_bittorrent-tracker
+
+- name: install NodeJS
+  yum: name=nodejs state=latest
+  tags: deploy_bittorrent-tracker
+

@@ -1,0 +1,13 @@
+- name: check ansible_cache_path
+  stat: path={{ ansible_cache_path }}
+  register: test_path
+  tags: prepare
+
+- name: remove ansible_cache_path if not a directory
+  file: path={{ ansible_cache_path }} state=absent
+  when: test_path.stat is defined and (test_path.stat.isdir is not defined or not test_path.stat.isdir)
+  tags: prepare
+
+- name: mkdir ansible_cache_path
+  file: path={{ ansible_cache_path }} state=directory owner=root group=root mode=0755
+  tags: prepare

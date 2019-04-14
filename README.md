@@ -1,20 +1,18 @@
 ansible-lssd
 ============
 
-Large scale server deploys using BitTorrent and the BitTornado library by [Murder](https://github.com/lg/murder).
-Mechanism is the same as Murder.
-For an intro video, see: [Twitter - Murder Bittorrent Deploy System](http://vimeo.com/11280885)
+Large scale server deploys using BitTorrent. aria2c, NodeJS Bittorrent-tracker and mktorrent are used.
 
 
 DESCRIPTION
 -----------
 
-ansible-lssd  is a method of using Bittorrent (Powered by [Murder](https://github.com/lg/murder)) to distribute files to a large amount of servers within a production environment. 
+ansible-lssd  is a method of using Bittorrent to distribute files to a large amount of servers within a production environment. 
 
 ansible-lssd operates as a playbook of [Ansible](https://github.com/ansible/ansible).
 These playbooks require Ansible 1.4.
 
-These playbooks were tested on CentOS 5.x so we recommend that you use CentOS to test these modules.
+These playbooks were tested on CentOS 7.x (ansible 2.6) with peers on Centos 7.x and Centos 6.x.
 
 Advantage
 ---------
@@ -28,12 +26,8 @@ There is the following advantage as compared with Murder.
 Installation of software required minimum
 -----------------------------------------
 
-`sudo pip install ansible` :
-  ```bash:
-  # install pip (Python package manager) and ansible
-  $ sudo easy_install pip
-  $ sudo pip install ansible
-  ```
+From EPEL:
+# yum -y install ansible
 
 
 HOW IT WORKS
@@ -47,15 +41,9 @@ CONFIGURATION
 
 You define `tracker`, `seeder` and `peer` server to inventory (./production) file.
 
-All involved servers must have python installed and the related murder
-support files (BitTornado, Murder lib, screen, pigz and etc.). To upload the support files to the tracker, seeder, and peers, run:
-  ```bash:
-  $ ansible-playbook -i prodction setup.yml
-  ```
+All involved servers must have python installed.
 
-By default, these will go in `/usr/local/murder` in your apps deploy directory. 
-Override this by setting the variable `remote_murder_path`. 
-
+The file group_vars/all contains the configuration.
 
 MANUAL USAGE
 ------------
@@ -100,7 +88,7 @@ Then manually run the ansible playbooks:
 1. Start the tracker:
 
   ```bash:
-  $ ansible-playbook -i prodction start_tracker.yml
+  $ ansible-playbook -i production start_tracker.yml
   ```
 
 2. Create a torrent from a directory of files on the seeder, and start seeding:
@@ -110,22 +98,22 @@ Then manually run the ansible playbooks:
   $ scp -r ./builds 10.0.0.1:~/builds
   
   # create torrent file
-  $ ansible-playbook -i prodction create_torrent.yml
+  $ ansible-playbook -i production create_torrent.yml
   
   # start seeding
-  $ ansible-playbook -i prodction start_seeder.yml
+  $ ansible-playbook -i production start_seeder.yml
   ```
 
 3. Distribute the torrent to all peers:
 
   ```bash:
-  $ ansible-playbook -i prodction deploy.yml -f 1000
+  $ ansible-playbook -i production deploy.yml -f 1000
   ```
 
 4. Stop the seeder and tracker:
 
   ```bash:
-  $ ansible-playbook -i prodction stop_seeder_and_tracker.yml
+  $ ansible-playbook -i production stop_seeder_and_tracker.yml
   ```
 
 When this finishes, all peers will have the files in /opt/hoge/Deploy1
@@ -138,11 +126,9 @@ MAIN PLAYBOOKS REFERENCE
   * Create torrent file on seeder node.
 * `deploy.yml:`
   * Deploy files on peer nodes.
-* `rm_tgz.yml:`
-  * Delete the file deployment of targz in all peer node.
 * `setup.yml:`
   * Install the software required for each node.
-* `site.yml:`
+* `full_deploy.yml:`
   * Run all Playbook deploy from the setup.
 * `start_seeder.yml:`
   * start seeding.
@@ -154,6 +140,10 @@ MAIN PLAYBOOKS REFERENCE
   * stop seeding and tracker.
 
 
+NOTES
+------------------------
 
+You may hit the request length limit (fixed in newer aria2 releases) :
+https://github.com/aria2/aria2/commit/e220c5384961f9261f19c28cd0b85f76f06d8993#diff-03671aebef9174610c96db97917b960a
 
-
+Workaround is using "-l 22" as mktorrent option to make less pieces.

@@ -1,0 +1,104 @@
+- name: create_inventory
+  gather_facts: no
+  vars_files:
+    - vcsim_vars.yml
+    - vm_list.yml
+  hosts: localhost
+
+  tasks:
+#    - name: Gather VMware guest facts
+#      vmware_guest_facts:
+#        hostname: "{{ vcenter_server }}"
+#        username: "{{ vcenter_user }}"
+#        password: "{{ vcenter_pass }}"
+#        datacenter:
+#        name: "{{ item }}"
+#        validate_certs: no
+#      register: vm_result
+#      with_items: "{{ vm_list }}"
+
+    - name: Gather VMware guest facts
+      vmware_guest_facts:
+        hostname: "{{ item[1] }}"
+        username: "{{ vcenter_user }}"
+        password: "{{ vcenter_pass }}"
+        datacenter:
+        name: "{{ item[0] }}"
+        validate_certs: no
+      register: vm_result
+      ignore_errors: true
+      with_nested:
+        - "{{ vm_list }}"
+        - "{{ vcenter_servers }}"
+
+    - name: remove output file
+      file: name=./associations_vm-esx state=absent
+
+    - name: make output file
+      file: name=./associations_vm-esx state=touch
+
+    - name: Get ESXs of VMs
+      vars:
+        s_query: "[?instance.hw_name == '{{ item }}'].instance.hw_esxi_host"
+      with_items: "{{ vm_list }}"
+      lineinfile: dest=./associations_vm-esx line="{{ item }};{{ vm_result.results | json_query(s_query) | join }}"
+
+    - name: check results
+      shell: "[ $(grep {{ item }} ./associations_vm-esx| awk -F';' '{print $2}') != '' ] || { echo 'Could not find ESX for VM : {{ item }}'; exit 1; }"
+      with_items: "{{ vm_list }}"
+
+    - name: Get ESXs of VMs2
+      set_fact:
+        esx_list: "{{ esx_list|default([]) + [ vm_result.results | json_query(s_query) | join ] }}"
+      vars:
+        s_query: "[?instance.hw_name == '{{ item }}'].instance.hw_esxi_host"
+      with_items: "{{ vm_list }}"
+
+    - name: remove output file
+      file: name=./associations_vm-location state=absent
+
+    - name: make output file
+      file: name=./associations_vm-location state=touch
+
+    - name: create mount directory
+      file: name=/mnt/CMDB state=directory
+      become: yes
+
+    - name: mount CMDB share
+      shell: mountpoint -q /mnt/CMDB || mount -t cifs //CPMUPD2APPVQ.ZRES.ZTECH/mup10cmdb_s/Envoi/PUBLICATION /mnt/CMDB -o credentials={{playbook_dir}}/CMDB_share_credentials,domain=ZGIE
+      become: yes
+
+    - name: find CMDB file
+      shell: ls -t /mnt/CMDB/MUP10CMDBH_*LISTE_CS.CSV|head -n1
+      register: CMDB_file
+
+    - name: store CMDB file path
+      set_fact:
+        CMDB_file_path: "{{ CMDB_file.stdout }}"
+
+    - name: retrieve ESXs' room
+      shell: grep -i "{{ item.split('.')[0] }}" {{ CMDB_file_path }}|awk -F',' '{print $14}'|tr -d '\t\n' 
+      register: esx_locations
+      with_items: "{{ esx_list }}"
+
+    - name: umount CMDB share
+      shell: mountpoint -q /mnt/CMDB && umount /mnt/CMDB
+      become: yes
+
+    - name: store location
+      set_fact:
+        location: "{{ esx_locations.results | map(attribute='stdout') | list }}"
+
+    - name: store associations
+      set_fact:
+        associations: "{{ (vm_list|zip([';'] * vm_list|length)|map('join')|list) | zip(location) | list | map('join') | list }}"
+
+    - name: save associations in file
+      #debug:
+      #  msg: "{{ item }}"
+      lineinfile: dest=./associations_vm-location line="{{ item }}"
+      with_items: "{{ associations }}"
+
+    - name: create inventories
+      command: ./create_inventory.sh
+
